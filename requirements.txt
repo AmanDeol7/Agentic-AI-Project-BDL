@@ -3,7 +3,7 @@ langchain-community>=0.0.13
 langgraph>=0.0.20
 streamlit>=1.28.0
 pydantic>=2.4.2
-ollama>=0.1.6
+langchain-ollama
 PyMuPDF>=1.23.7  # for PDF processing
 openpyxl>=3.1.2  # for Excel processing
 pandas>=2.1.2
@@ -14,3 +14,11 @@ python-dotenv>=1.0.0
 watchdog>=3.0.0  # needed for Streamlit live reloading
 transformers>=4.35.0  # for embedding generation (optional)
 ipykernel
+matplotlib
+graphviz
+uvicorn
+fastapi
+pdfplumber
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
+numpy>=1.21.0

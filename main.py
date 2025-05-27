@@ -1,5 +1,5 @@
 def main():
-    print("Hello from intern-task-bdl!")
+    print("Hello from intern-task-bdl")
 
 
 if __name__ == "__main__":
