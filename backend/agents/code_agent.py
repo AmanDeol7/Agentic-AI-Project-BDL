@@ -322,12 +322,15 @@ When executing C code:
                     response += f"❌ **Failed to execute {language.upper()} code**\n\n"
                     if error:
                         response += f"**Error:**\n```\n{error.strip()}\n```\n\n"
-                    
-                    response += "There was an issue executing the code. Please check the error message above."
+                        if "compilation error" in error.lower():
+                            response += "The code failed to compile. Please check the error message above and fix any syntax or compilation issues."
+                        else:
+                            response += "There was an issue executing the code. Please check the error message above."
                 
                 return response
             else:
                 print(f"DEBUG: Execution result is not a dict: {execution_result}")
+                return f"Error: Unexpected execution result format: {str(execution_result)}"
         
         # Check if this is a generate and execute request that needs code generation
         last_user_message = ""

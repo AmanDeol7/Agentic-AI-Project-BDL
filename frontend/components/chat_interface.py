@@ -88,6 +88,10 @@ def create_chat_interface(process_message_callback: Callable):
                             st.code(result["output"], language="text")
                         if "error" in result and result["error"]:
                             st.error(result["error"])
+                        if "compilation" in result:
+                            st.info(f"Compilation: {result['compilation']}")
+                        if "language" in result:
+                            st.info(f"Language: {result['language'].upper()}")
                     elif tool_name == "pdf_loader":
                         if "num_pages" in result:
                             st.info(f"Extracted {result['num_pages']} pages")
@@ -153,18 +157,25 @@ def create_chat_interface(process_message_callback: Callable):
         # Get response from backend
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                response = process_message_callback(
-                    message=prompt,
-                    conversation_history=st.session_state.messages,
-                    uploaded_files=st.session_state.uploaded_files
-                )
-                
-                # Display response
-                st.markdown(response["response"])
-                
-                # Update conversation history
-                st.session_state.messages = response["conversation_history"]
-                
-                # Update agent and tool information in session state
-                st.session_state.last_agent_used = response.get("agent_used")
-                st.session_state.last_tool_executions = response.get("tool_results", [])
+                try:
+                    response = process_message_callback(
+                        message=prompt,
+                        conversation_history=st.session_state.messages,
+                        uploaded_files=st.session_state.uploaded_files
+                    )
+                    
+                    # Display response
+                    st.markdown(response["response"])
+                    
+                    # Update conversation history
+                    st.session_state.messages = response["conversation_history"]
+                    
+                    # Update agent and tool information in session state
+                    st.session_state.last_agent_used = response.get("agent_used")
+                    st.session_state.last_tool_executions = response.get("tool_results", [])
+                    
+                    # Force a rerun to update the sidebar with tool results
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error processing message: {str(e)}")
+                    st.error("Please try again or restart the application.")

@@ -18,7 +18,7 @@ class CodeExecutor:
 
     def run(self, args: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
         code = args.get("code")
-        language = args.get("language", "python","c").lower()
+        language = args.get("language", "python").lower()
 
         if not code:
             return {"error": "No code provided", "success": False}
