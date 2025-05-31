@@ -1,14 +1,18 @@
 from typing import Dict, List, Any, Optional
+import logging
 from .base_agent import BaseAgent, AgentContext
+
+logger = logging.getLogger(__name__)
 
 class DocAgent(BaseAgent):
     """
-    Agent specialized in document parsing and analysis using RAG.
+    Agent specialized in document parsing and analysis using TensorRT-LLM.
+    Provides intelligent document processing, analysis, and question-answering capabilities.
     """
     
     def format_system_prompt(self, context: AgentContext) -> str:
         """
-        Format the system prompt for the RAG-enabled document agent.
+        Format the system prompt for the document agent with TensorRT-LLM specific capabilities.
         
         Args:
             context: Current context for the agent
@@ -28,44 +32,51 @@ class DocAgent(BaseAgent):
                 [f"- {file}" for file in context.uploaded_files]
             )
         
-        # Check if we have RAG results in context
-        rag_context = ""
-        if 'rag_processor' in context.tools_results:
-            rag_result = context.tools_results['rag_processor']
-            if isinstance(rag_result, dict) and 'rag_prompt' in rag_result:
-                # Use the RAG prompt directly
-                return rag_result['rag_prompt']
-        
         system_prompt = f"""You are {self.name}, {self.description}.
-You are a specialized Document Assistant with RAG (Retrieval-Augmented Generation) capabilities.
+You are a specialized Document Assistant powered by TensorRT-LLM.
 
-You have these capabilities:
-1. Ingest documents into a vector database for accurate retrieval
-2. Answer questions using relevant document context
-3. Provide precise information based on document content
-4. Maintain source attribution for all answers
+CAPABILITIES:
+1. Parse and extract information from documents (PDF, Word, Excel, CSV, text)
+2. Provide intelligent document analysis and summarization
+3. Answer complex questions about document content
+4. Perform document comparison and cross-referencing
+5. Extract key insights and patterns from documents
+6. Generate structured summaries and reports
+7. If there is no file available in your context, just say that no document is uploaded.
+PROCESSING POWER:
+- Powered by TensorRT-LLM for high-performance inference
+- Optimized for large document processing
+- Capable of handling complex analytical tasks
+- Falls back to Ollama if needed for reliability
 
-When working with documents:
-- First ingest new documents into the RAG system
-- Use retrieved context to provide accurate answers
-- Always cite sources when providing information
-- Be clear about the confidence level of your answers
-- Don't make up information not present in the documents
+DOCUMENT FORMATS SUPPORTED:
+- PDF documents
+- Microsoft Word (.docx)
+- Excel spreadsheets (.xlsx)
+- CSV files
+- Plain text files
 
 {tool_descriptions}
 {files_context}
+
+INSTRUCTIONS:
+- Always process documents thoroughly before answering questions
+- Provide detailed, accurate information based on document content
+- Use tools to extract and analyze document data when needed
+- If multiple documents are uploaded, consider relationships between them
+- Highlight key findings and important information clearly
 """
         return system_prompt
-    
+
     def analyze_task(self, context: AgentContext) -> Dict[str, Any]:
         """
-        Analyze the current task and determine needed tools.
+        Analyze the current task and determine needed tools with enhanced TensorRT-LLM logic.
         
         Args:
             context: Current context for the agent
-            
+        
         Returns:
-            Analysis results with RAG processing plan
+            Analysis results with specific tool and action recommendations
         """
         # Get the latest user message
         if not context.messages:
@@ -77,34 +88,81 @@ When working with documents:
         
         last_user_message = last_user_messages[-1].content.lower()
         
-        # Check if there are new files to ingest
+        # Enhanced document processing logic with TensorRT-LLM capabilities
         if context.uploaded_files:
-            # Check if this is the first time we're seeing these files
-            # or if user is asking to process/read them
+            # Determine the type of document processing needed
             if any(keyword in last_user_message for keyword in 
-                   ["read", "analyze", "summarize", "process", "ingest", "upload"]):
+                   ["summarize", "summary", "overview", "main points"]):
                 return {
                     "action": "use_tool",
-                    "tool": "rag_processor",
+                    "tool": "document_processor",
                     "args": {
-                        "action": "ingest",
-                        "file": context.uploaded_files[0]  # Use the first file
+                        "action": "summarize",
+                        "file": context.uploaded_files[0]
                     },
-                    "needs_tools": True
+                    "needs_tools": True,
+                    "reason": "User requested document summarization"
                 }
-        
-        # Check if this is a query about documents
-        if any(keyword in last_user_message for keyword in 
-               ["what", "how", "why", "when", "where", "explain", "tell me", "question"]):
-            # This looks like a query, use RAG to retrieve context
+            
+            elif any(keyword in last_user_message for keyword in 
+                     ["analyze", "analysis", "insights", "patterns", "key findings"]):
+                return {
+                    "action": "use_tool",
+                    "tool": "document_processor",
+                    "args": {
+                        "action": "analyze",
+                        "file": context.uploaded_files[0]
+                    },
+                    "needs_tools": True,
+                    "reason": "User requested document analysis"
+                }
+            
+            elif any(keyword in last_user_message for keyword in 
+                     ["read", "extract", "content", "text", "information"]):
+                return {
+                    "action": "use_tool",
+                    "tool": "document_processor",
+                    "args": {
+                        "action": "extract",
+                        "file": context.uploaded_files[0]
+                    },
+                    "needs_tools": True,
+                    "reason": "User requested content extraction"
+                }
+            
+            elif any(keyword in last_user_message for keyword in 
+                     ["question", "what", "how", "when", "where", "why", "find"]):
+                return {
+                    "action": "use_tool",
+                    "tool": "document_processor",
+                    "args": {
+                        "action": "question_answer",
+                        "file": context.uploaded_files[0],
+                        "question": last_user_messages[-1].content
+                    },
+                    "needs_tools": True,
+                    "reason": "User asked a question about the document"
+                }
+            
+            # Default processing for uploaded files
             return {
                 "action": "use_tool",
-                "tool": "rag_processor",
+                "tool": "document_processor",
                 "args": {
-                    "action": "query",
-                    "query": last_user_messages[-1].content
+                    "action": "process",
+                    "file": context.uploaded_files[0]
                 },
-                "needs_tools": True
+                "needs_tools": True,
+                "reason": "General document processing needed"
+            }
+        
+        # If no files but user mentions document-related tasks
+        elif any(keyword in last_user_message for keyword in 
+                 ["document", "file", "upload", "pdf", "word", "excel"]):
+            return {
+                "action": "respond",
+                "needs_tools": False,
+                "suggestion": "Please upload a document to analyze"
             }
         
         # Default action is to respond normally

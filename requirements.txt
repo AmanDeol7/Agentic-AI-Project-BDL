@@ -8,11 +8,9 @@ PyMuPDF>=1.23.7  # for PDF processing
 openpyxl>=3.1.2  # for Excel processing
 pandas>=2.1.2
 numpy>=1.26.1
-jinja2>=3.1.2
 SQLAlchemy>=2.0.23
 python-dotenv>=1.0.0
 watchdog>=3.0.0  # needed for Streamlit live reloading
-transformers>=4.35.0  # for embedding generation (optional)
 ipykernel
 matplotlib
 graphviz
@@ -22,3 +20,7 @@ pdfplumber
 sentence-transformers>=2.2.2
 faiss-cpu>=1.7.4
 numpy>=1.21.0
+# Additional dependencies for document processing
+PyPDF2>=3.0.1
+python-docx>=0.8.11
+requests>=2.31.0

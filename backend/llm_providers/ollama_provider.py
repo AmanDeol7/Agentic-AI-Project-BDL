@@ -3,8 +3,6 @@ Ollama integration for LLM functionality.
 """
 from typing import List, Dict, Any, Optional
 from langchain_ollama.llms import OllamaLLM
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 class OllamaProvider:
     """
@@ -15,8 +13,7 @@ class OllamaProvider:
         self, 
         model_name: str = "mistral", 
         temperature: float = 0.7,
-        max_tokens: int = 2000,
-        streaming: bool = True
+        max_tokens: int = 2000
     ):
         """
         Initialize the Ollama provider.
@@ -25,22 +22,16 @@ class OllamaProvider:
             model_name: Name of the model to use
             temperature: Temperature for generation
             max_tokens: Maximum tokens to generate
-            streaming: Whether to stream responses
         """
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.streaming = streaming
-        
-        # Set up callback manager for streaming
-        callback_manager = CallbackManager([StreamingStdOutCallbackHandler()]) if streaming else None
         
         # Initialize Ollama LLM
         self.llm = OllamaLLM(
             model=model_name,
             temperature=temperature, #increasing will make it more creative
-            num_predict=max_tokens,
-            callback_manager=callback_manager
+            num_predict=max_tokens
         )
     
     def generate(self, prompt: str) -> str:
@@ -67,6 +58,20 @@ class OllamaProvider:
         """
         return self.llm.batch(prompts)
     
+    def is_available(self) -> bool:
+        """
+        Check if the Ollama provider is available.
+        
+        Returns:
+            True if Ollama is available, False otherwise
+        """
+        try:
+            # Try a simple model call to check availability
+            test_response = self.llm.invoke("test")
+            return True
+        except Exception:
+            return False
+
     def get_model_info(self) -> Dict[str, Any]:
         """
         Get information about the model.

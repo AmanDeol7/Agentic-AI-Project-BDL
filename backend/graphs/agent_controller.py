@@ -367,37 +367,64 @@ def create_agent_graph(
         # Check if we already have a generation response (from generate-and-execute flow)
         existing_response = state.get("final_response", "")
         
-        # If we have tool results (execution results), we need to combine them
+        # If we have tool results (execution results), use them directly for document processing
         if state["tool_results"]:
-            print(f"DEBUG: Combining generation and execution results")
+            print(f"DEBUG: Processing tool results directly")
             
-            # Create context with tool results for the agent to format the combined response
-            from ..agents.base_agent import Message, AgentContext
-            agent_messages = [
-                Message(role=msg["role"], content=msg["content"]) 
-                for msg in state["messages"]
-            ]
+            combined_response = ""
             
-            # Create context with tool results
-            tools_results = {}
             for result in state["tool_results"]:
-                tools_results[result["tool"]] = result["result"]
-                print(f"DEBUG: Added tool result for {result['tool']}: success={result.get('success', 'unknown')}")
+                tool_name = result["tool"]
+                tool_result = result["result"]
+                success = result.get("success", False)
+                
+                print(f"DEBUG: Processing result from {tool_name}: success={success}")
+                
+                if success and tool_name == "document_processor":
+                    # Handle document processor results directly
+                    if isinstance(tool_result, dict):
+                        if 'summary' in tool_result:
+                            # Document summarization
+                            combined_response = tool_result['summary']
+                        elif 'analysis' in tool_result:
+                            # Document analysis
+                            combined_response = tool_result['analysis']
+                        elif 'answer' in tool_result:
+                            # Q&A response
+                            combined_response = tool_result['answer']
+                        elif 'extracted_content' in tool_result:
+                            # Content extraction
+                            content = tool_result['extracted_content']
+                            if len(content) > 500:
+                                combined_response = f"Document content extracted successfully. Here's a preview:\n\n{content[:500]}...\n\nTotal length: {len(content)} characters"
+                            else:
+                                combined_response = f"Document content:\n\n{content}"
+                        else:
+                            # Fallback for other document processing results
+                            combined_response = f"Document processed successfully. {tool_result.get('message', 'Processing completed.')}"
+                    else:
+                        combined_response = str(tool_result)
+                elif success and tool_name == "code_executor":
+                    # Handle code execution results
+                    if isinstance(tool_result, dict) and 'output' in tool_result:
+                        combined_response = f"Code executed successfully:\n\n```\n{tool_result['output']}\n```"
+                    else:
+                        combined_response = f"Code execution result: {tool_result}"
+                else:
+                    # Handle failed executions or other tools
+                    if isinstance(tool_result, dict) and 'error' in tool_result:
+                        combined_response = f"Error: {tool_result['error']}"
+                    else:
+                        combined_response = f"Tool execution result: {tool_result}"
             
-            context = AgentContext(
-                messages=agent_messages,
-                uploaded_files=state["uploaded_files"],
-                tools_results=tools_results
-            )
-            
-            # Generate the execution results response
-            execution_response = agent.generate_response(context)
-            
-            # Combine generation and execution responses if we have both
+            # If we have an existing response and tool results, combine them appropriately
             if existing_response and existing_response.strip():
-                combined_response = f"{existing_response}\n\n---\n\n{execution_response}"
-            else:
-                combined_response = execution_response
+                if tool_name == "code_executor":
+                    # For code execution, show the code first, then the result
+                    combined_response = f"{existing_response}\n\n**Execution Result:**\n{combined_response}"
+                else:
+                    # For other tools, use the tool result as the main response
+                    pass  # combined_response is already set from tool results
             
         elif existing_response:
             # We have a generation response but no execution

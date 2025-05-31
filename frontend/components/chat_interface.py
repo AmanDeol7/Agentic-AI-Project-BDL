@@ -6,6 +6,45 @@ from typing import List, Dict, Any, Callable
 import os
 from pathlib import Path
 
+def clear_system_context(remove_files_from_disk=False):
+    """
+    Clear all system context including messages, files, and tool results.
+    
+    Args:
+        remove_files_from_disk: If True, also delete uploaded files from disk
+    """
+    # Get list of files to potentially remove before clearing session state
+    files_to_remove = st.session_state.uploaded_files.copy() if remove_files_from_disk else []
+    
+    # Clear frontend session state
+    st.session_state.messages = []
+    st.session_state.uploaded_files = []
+    st.session_state.last_agent_used = None
+    st.session_state.last_tool_executions = []
+    
+    # Clear backend assistant context
+    try:
+        # Import here to avoid circular imports
+        from backend.main import clear_assistant_instance
+        clear_assistant_instance()
+        st.success("🧹 Backend context cleared successfully")
+    except Exception as e:
+        st.warning(f"Could not clear backend context: {str(e)}")
+    
+    # Clear uploaded files from disk if requested
+    if remove_files_from_disk and files_to_remove:
+        removed_count = 0
+        for file_path in files_to_remove:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    removed_count += 1
+            except Exception as e:
+                st.warning(f"Could not remove file {os.path.basename(file_path)}: {str(e)}")
+        
+        if removed_count > 0:
+            st.info(f"🗂️ Removed {removed_count} files from disk")
+
 def initialize_chat_state():
     """Initialize the chat state in the Streamlit session."""
     if "messages" not in st.session_state:
@@ -43,6 +82,102 @@ def create_chat_interface(process_message_callback: Callable):
     # Create sidebar for agent and tool information
     with st.sidebar:
         st.header("System Information")
+        
+        # Add clear context button at the top
+        st.subheader("System Control")
+        
+        # Show current context stats
+        message_count = len(st.session_state.messages)
+        file_count = len(st.session_state.uploaded_files)
+        tool_count = len(st.session_state.last_tool_executions)
+        
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.metric("Messages", message_count)
+            st.metric("Files", file_count)
+        with col2:
+            st.metric("Tools Used", tool_count)
+            st.metric("Agent", st.session_state.last_agent_used or "None")
+        
+        # Clear context button with confirmation
+        if message_count > 0 or file_count > 0:
+            # Add options for clearing
+            st.markdown("**Clear Options:**")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                clear_basic = st.button("🗑️ Clear Chat", 
+                                       type="secondary", 
+                                       help="Clear messages and session state only",
+                                       use_container_width=True)
+            with col2:
+                clear_complete = st.button("🧹 Clear All", 
+                                         type="secondary", 
+                                         help="Clear everything including backend context",
+                                         use_container_width=True)
+            
+            # Handle basic clear
+            if clear_basic:
+                if "confirm_clear_basic" not in st.session_state:
+                    st.session_state.confirm_clear_basic = False
+                
+                if not st.session_state.confirm_clear_basic:
+                    st.session_state.confirm_clear_basic = True
+                    st.warning("⚠️ This will clear chat history and uploaded files. Click again to confirm.")
+                    st.rerun()
+                else:
+                    # Clear only frontend state
+                    st.session_state.messages = []
+                    st.session_state.uploaded_files = []
+                    st.session_state.last_agent_used = None
+                    st.session_state.last_tool_executions = []
+                    st.session_state.confirm_clear_basic = False
+                    st.success("✅ Chat history cleared!")
+                    st.rerun()
+            
+            # Handle complete clear
+            if clear_complete:
+                if "confirm_clear_complete" not in st.session_state:
+                    st.session_state.confirm_clear_complete = False
+                
+                if not st.session_state.confirm_clear_complete:
+                    st.session_state.confirm_clear_complete = True
+                    st.warning("⚠️ This will completely reset the system including backend context. Click again to confirm.")
+                    st.rerun()
+                else:
+                    # Get the remove files option
+                    remove_files = st.session_state.get('remove_files_option', False)
+                    clear_system_context(remove_files_from_disk=remove_files)
+                    st.session_state.confirm_clear_complete = False
+                    
+                    # Force reinitialization of assistant in the main app
+                    if 'assistant' in st.session_state:
+                        del st.session_state.assistant
+                    
+                    st.success("✅ Complete system reset successful!")
+                    st.rerun()
+            
+            # Add option to clear files from disk
+            if st.session_state.uploaded_files:
+                st.session_state.remove_files_option = st.checkbox(
+                    "🗂️ Also remove uploaded files from disk", 
+                    help="Delete the actual files from the uploads directory"
+                )
+        else:
+            st.info("💡 No context to clear")
+        
+        # Reset confirmation if user does something else
+        if "confirm_clear_basic" in st.session_state and st.session_state.confirm_clear_basic:
+            if st.button("❌ Cancel", type="primary", use_container_width=True):
+                st.session_state.confirm_clear_basic = False
+                st.rerun()
+        
+        if "confirm_clear_complete" in st.session_state and st.session_state.confirm_clear_complete:
+            if st.button("❌ Cancel", type="primary", use_container_width=True):
+                st.session_state.confirm_clear_complete = False
+                st.rerun()
+        
+        st.divider()
         
         # Display current agent information
         st.subheader("Active Agent")
@@ -107,8 +242,8 @@ def create_chat_interface(process_message_callback: Callable):
     
     # File uploader
     uploaded_file = st.file_uploader(
-        "Upload a file (PDF, Python script, text file, etc.)",
-        type=["pdf", "py", "txt", "csv", "c", "cpp"],
+        "Upload a file (PDF, Excel, Python script, text file, etc.)",
+        type=["pdf", "py", "txt", "csv", "c", "cpp", "xlsx", "xls", "docx", "doc", "md"],
         key="file_uploader"
     )
     
