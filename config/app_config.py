@@ -8,8 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # LLM Configuration
 LLM_CONFIG = {
-    "provider": "ollama",  # Use ollama directly to avoid GPU issues
-    "model": "mistral",  # Use smaller, more reliable model
+    "provider": "tensorrt",  # Use TensorRT since server is available
+    "model": "mistral",  # Default model through Ollama (fallback)
     "temperature": 0.7,
     "max_tokens": 1000  # Reduced to prevent memory issues
 }

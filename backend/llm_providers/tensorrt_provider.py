@@ -19,7 +19,7 @@ class TensorRTProvider:
         server_url: str = "http://localhost:8000",
         model_name: str = "llama2",
         temperature: float = 0.7,
-        max_tokens: int = 2000,
+        max_tokens: int = 512,
         timeout: int = 30
     ):
         """
@@ -52,9 +52,28 @@ class TensorRTProvider:
     def _health_check(self) -> Dict[str, Any]:
         """Check if TensorRT-LLM server is running and get server info."""
         try:
+            # First try the health endpoint
             response = requests.get(f"{self.server_url}/health", timeout=5)
             if response.status_code == 200:
-                return response.json()
+                # Some servers return empty health responses, try to get models instead
+                try:
+                    models_response = requests.get(f"{self.server_url}/v1/models", timeout=5)
+                    if models_response.status_code == 200:
+                        models_data = models_response.json()
+                        # Return server info based on available models
+                        return {
+                            "status": "healthy",
+                            "max_seq_len": 4096,  # Default value
+                            "models": models_data.get("data", [])
+                        }
+                except:
+                    pass
+                
+                # Try to parse health response as JSON, fallback to default if empty
+                try:
+                    return response.json()
+                except:
+                    return {"status": "healthy", "max_seq_len": 4096}
             else:
                 return {}
         except Exception as e:

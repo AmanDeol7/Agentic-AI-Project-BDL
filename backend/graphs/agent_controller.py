@@ -99,7 +99,7 @@ def create_agent_graph(
         print("DEBUG: analyze_task called")
         
         agent_id = state["current_agent"]
-        agent = agents[agent_id]
+        agent = agents[agent_id] 
         
         # Convert state messages to agent context messages
         from ..agents.base_agent import Message, AgentContext

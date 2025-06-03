@@ -40,7 +40,7 @@ class AgenticAssistant:
         if use_tensorrt:
             self.llm_provider = TensorRTProvider(
                 server_url="http://localhost:8000",  # Default TensorRT-LLM server
-                model_name="llama2",
+                model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0",  # Use the actual model available
                 temperature=LLM_CONFIG["temperature"],
                 max_tokens=LLM_CONFIG["max_tokens"]
             )
