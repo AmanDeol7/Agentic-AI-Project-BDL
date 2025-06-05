@@ -1,0 +1,20 @@
+# Client Configuration
+client:
+  id: "${CLIENT_ID}"
+  name: "Client ${CLIENT_ID}"
+  description: "Agentic AI Client Instance"
+
+connection:
+  main_server_url: "${MAIN_SERVER_URL}"
+  timeout: 30
+  retry_attempts: 3
+
+features:
+  - chat
+  - file_upload
+  - code_execution
+  - document_processing
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # LLM Configuration
 LLM_CONFIG = {
     "provider": "tensorrt",  # Use TensorRT since server is available
-    "model": "mistral",  # Default model through Ollama (fallback)
+    "model": "mistral:7b",  # Mistral 7B model for better performance
     "temperature": 0.7,
     "max_tokens": 1000  # Reduced to prevent memory issues
 }

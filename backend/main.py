@@ -36,6 +36,9 @@ class AgenticAssistant:
     
     def __init__(self, use_tensorrt: bool = True):
         """Initialize the agentic assistant with agents and tools."""
+        # Get model name from environment variable or config
+        model_name = os.getenv('LLM_MODEL', LLM_CONFIG["model"])
+        
         # Initialize LLM provider based on preference
         if use_tensorrt:
             self.llm_provider = TensorRTProvider(
@@ -48,13 +51,13 @@ class AgenticAssistant:
             if not self.llm_provider.is_available():
                 print("TensorRT-LLM not available, falling back to Ollama")
                 self.llm_provider = OllamaProvider(
-                    model_name=LLM_CONFIG["model"],
+                    model_name=model_name,
                     temperature=LLM_CONFIG["temperature"],
                     max_tokens=LLM_CONFIG["max_tokens"]
                 )
         else:
             self.llm_provider = OllamaProvider(
-                model_name=LLM_CONFIG["model"],
+                model_name=model_name,
                 temperature=LLM_CONFIG["temperature"],
                 max_tokens=LLM_CONFIG["max_tokens"]
             )

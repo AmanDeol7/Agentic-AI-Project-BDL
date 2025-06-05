@@ -1,0 +1,42 @@
+services:
+  # Client frontend server
+  frontend-client:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.frontend
+    container_name: agentic-frontend-client-${CLIENT_ID:-1}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ../data:/app/data
+      - ./client-config:/app/config/client
+    environment:
+      - BACKEND_URL=http://localhost:${BACKEND_PORT:-8001}
+      - MAIN_SERVER_URL=${MAIN_SERVER_URL:-http://localhost:8000}
+      - CLIENT_ID=${CLIENT_ID:-1}
+      - ENVIRONMENT=production
+      - SERVER_TYPE=client
+      - STREAMLIT_PORT=${FRONTEND_PORT:-8501}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8501}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Client backend proxy
+  backend-proxy:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.backend-proxy
+    container_name: agentic-backend-proxy-${CLIENT_ID:-1}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - MAIN_SERVER_URL=${MAIN_SERVER_URL:-http://localhost:8000}
+      - CLIENT_ID=${CLIENT_ID:-1}
+      - PROXY_PORT=${BACKEND_PORT:-8001}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8001}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

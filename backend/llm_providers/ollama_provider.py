@@ -11,9 +11,10 @@ class OllamaProvider:
     
     def __init__(
         self, 
-        model_name: str = "mistral", 
+        model_name: str = "mistral:7b", 
         temperature: float = 0.7,
-        max_tokens: int = 2000
+        max_tokens: int = 2000,
+        base_url: str = None
     ):
         """
         Initialize the Ollama provider.
@@ -22,16 +23,23 @@ class OllamaProvider:
             model_name: Name of the model to use
             temperature: Temperature for generation
             max_tokens: Maximum tokens to generate
+            base_url: Base URL for Ollama server (defaults to environment variable or localhost)
         """
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
         
+        # Use environment variable for Ollama base URL if available
+        import os
+        if base_url is None:
+            base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+        
         # Initialize Ollama LLM
         self.llm = OllamaLLM(
             model=model_name,
             temperature=temperature, #increasing will make it more creative
-            num_predict=max_tokens
+            num_predict=max_tokens,
+            base_url=base_url
         )
     
     def generate(self, prompt: str) -> str:
