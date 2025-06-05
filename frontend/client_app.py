@@ -68,49 +68,12 @@ class BackendClient:
     ) -> Dict[str, Any]:
         """Process a message through the backend API."""
         try:
-            uploaded_file_paths = []
-            
-            # Upload files to backend if any are provided
-            if uploaded_files:
-                for file_path in uploaded_files:
-                    try:
-                        # Read the file content
-                        with open(file_path, "rb") as f:
-                            file_content = f.read()
-                        
-                        # Extract filename from path
-                        filename = os.path.basename(file_path)
-                        
-                        # Upload file to backend
-                        upload_result = self.upload_file(file_path, file_content, filename)
-                        
-                        if "error" in upload_result:
-                            return {
-                                "response": f"Error uploading file {filename}: {upload_result['error']}",
-                                "agent_used": "error",
-                                "conversation_history": conversation_history or [],
-                                "tool_results": [],
-                                "error": f"file_upload_error: {upload_result['error']}"
-                            }
-                        
-                        # Store the backend file path
-                        uploaded_file_paths.append(upload_result.get("file_path", ""))
-                        
-                    except Exception as e:
-                        return {
-                            "response": f"Error reading file {file_path}: {str(e)}",
-                            "agent_used": "error",
-                            "conversation_history": conversation_history or [],
-                            "tool_results": [],
-                            "error": f"file_read_error: {str(e)}"
-                        }
-            
             # Prepare the request payload
             payload = {
                 "message": message,
                 "conversation_history": conversation_history or [],
                 "agent_type": None,
-                "uploaded_files": uploaded_file_paths
+                "uploaded_files": uploaded_files or []
             }
             
             # Make the API call
@@ -200,7 +163,34 @@ def test_backend_connection():
 def create_message_processor(client: BackendClient):
     """Create a message processor function that uses the backend client."""
     def process_message(message: str, conversation_history: List[Dict[str, str]] = None, uploaded_files: List[str] = None):
-        return client.process_message(message, conversation_history, uploaded_files)
+        # If there are uploaded files, upload them to backend first
+        backend_file_paths = []
+        if uploaded_files:
+            with st.spinner("Uploading files to backend..."):
+                for file_path in uploaded_files:
+                    try:
+                        # Read file content
+                        with open(file_path, 'rb') as f:
+                            file_content = f.read()
+                        filename = os.path.basename(file_path)
+                        
+                        # Upload to backend
+                        upload_result = client.upload_file(file_path, file_content, filename)
+                        if "error" not in upload_result:
+                            backend_file_paths.append(upload_result.get("file_path", file_path))
+                            st.success(f"✅ Uploaded {filename} to backend")
+                        else:
+                            st.error(f"❌ Failed to upload {filename}: {upload_result['error']}")
+                    except Exception as e:
+                        st.error(f"❌ Error uploading {os.path.basename(file_path)}: {str(e)}")
+            
+            # Update message to include file information
+            if backend_file_paths:
+                file_list = "\n".join([f"- {os.path.basename(fp)}" for fp in backend_file_paths])
+                message = f"{message}\n\nFiles to analyze:\n{file_list}"
+        
+        # Process message with backend file paths
+        return client.process_message(message, conversation_history, backend_file_paths)
     return process_message
 
 def main():

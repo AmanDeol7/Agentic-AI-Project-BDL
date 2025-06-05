@@ -41,7 +41,7 @@ services:
       - "8000:8000"
     volumes:
       - ../data:/app/data
-      - ../uploads:/app/uploads
+      - ../data/uploads:/app/data/uploads
     environment:
       - OLLAMA_BASE_URL=http://ollama-server:11434
       - LLM_MODEL=mistral:7b

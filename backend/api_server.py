@@ -25,7 +25,7 @@ import uvicorn
 
 # Import backend components
 from backend.main import get_assistant, clear_assistant_instance
-from config.app_config import BASE_DIR
+from config.app_config import BASE_DIR, PATHS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +58,7 @@ class ChatRequest(BaseModel):
     message: str
     conversation_history: Optional[List[ChatMessage]] = []
     agent_type: Optional[str] = None
+    uploaded_files: Optional[List[str]] = []  # Add uploaded files list
 
 class ChatResponse(BaseModel):
     response: str
@@ -169,7 +170,7 @@ async def chat(request: ChatRequest, assistant: Any = Depends(get_assistant_inst
         result = assistant.process_message(
             message=request.message,
             conversation_history=conversation_history,
-            uploaded_files=[]
+            uploaded_files=request.uploaded_files or []
         )
         
         # Convert response back to Pydantic models
@@ -213,8 +214,8 @@ async def upload_file(
             )
         
         # Create uploads directory if it doesn't exist
-        uploads_dir = BASE_DIR / "uploads"
-        uploads_dir.mkdir(exist_ok=True)
+        uploads_dir = PATHS["uploads"]
+        uploads_dir.mkdir(parents=True, exist_ok=True)
         
         # Save uploaded file
         file_path = uploads_dir / file.filename
@@ -248,8 +249,8 @@ async def process_file(
     """
     try:
         # First upload the file
-        uploads_dir = BASE_DIR / "uploads"
-        uploads_dir.mkdir(exist_ok=True)
+        uploads_dir = PATHS["uploads"]
+        uploads_dir.mkdir(parents=True, exist_ok=True)
         
         file_path = uploads_dir / file.filename
         with open(file_path, "wb") as buffer:

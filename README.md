@@ -68,12 +68,18 @@
 
 <div align="center">
 
-### 🔥 **Get Started in 3 Commands!**
+### 🔥 **Get Started in 2 Commands!**
 
+**Local Development:**
+```bash
+git clone <repository-url> && cd Agentic-AI-Project-BDL
+python dev.py  # Auto-detects TensorRT or Ollama
+```
+
+**Docker Deployment:**
 ```bash
 git clone <repository-url> && cd Agentic-AI-Project-BDL
 chmod +x deploy.sh && ./deploy.sh main
-# 🎉 Visit http://localhost:8501 and start creating!
 ```
 
 </div>
@@ -94,10 +100,28 @@ chmod +x deploy.sh && ./deploy.sh main
 - ⚡ **RTX 3060** or better (8GB+ VRAM)
 - 🏃‍♂️ **16+ CPU cores** for optimal performance
 
-#### 🧪 **For Development**
-- 🐍 Python 3.12+
-- 📝 Git
-- 💻 VS Code (recommended)
+#### 🧪 **Development Options**
+
+<details>
+<summary>🔧 <strong>Advanced Local Setup (Click to expand)</strong></summary>
+
+```bash
+# Force specific provider
+python dev.py --tensorrt    # Use TensorRT-LLM only
+python dev.py --ollama      # Use Ollama only
+
+# Install dependencies only
+python dev.py --setup       # Setup without starting
+
+# Manual Streamlit (after setup)
+cd frontend && streamlit run app.py
+```
+
+**🎯 Provider Priority:**
+1. **TensorRT-LLM** (localhost:8000) - Best performance
+2. **Ollama** (localhost:11434) - Auto-installed fallback
+
+</details>
 
 </details>
 
@@ -113,18 +137,30 @@ chmod +x deploy.sh && ./deploy.sh main
 
 </div>
 
-### ⚡ **One-Command Deployment**
+### ⚡ **One-Command Setup**
 
+<div align="center">
+
+**🖥️ Local Development** | **🐳 Docker Deployment**
+
+</div>
+
+#### 🖥️ **Local Development (Simplified)**
 ```bash
 # 1️⃣ Clone and navigate
 git clone <repository-url>
 cd Agentic-AI-Project-BDL
 
-# 2️⃣ Make executable and deploy
-chmod +x deploy.sh
-./deploy.sh main
+# 2️⃣ Complete setup with dependencies, Ollama, and models
+python setup-dev.py
+```
 
-# 3️⃣ Deploy additional clients (optional)
+#### 🐳 **Docker Deployment (Production)**
+```bash
+# 1️⃣ Main server deployment
+chmod +x deploy.sh && ./deploy.sh main
+
+# 2️⃣ Additional clients (optional)
 ./deploy.sh client 1  # Port 8501
 ./deploy.sh client 2  # Port 8502
 ```
