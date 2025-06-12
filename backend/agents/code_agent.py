@@ -61,11 +61,6 @@ For C programming specifically:
 {tool_descriptions}
 {files_context}
 
-When executing C code:
-1. Explain what the code is expected to do
-2. Identify any potential issues before execution
-3. After execution, interpret the results clearly
-4. If there are errors, provide guidance on fixing them
 """
         return system_prompt
     

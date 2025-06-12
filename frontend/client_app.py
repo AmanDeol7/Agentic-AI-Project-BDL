@@ -6,11 +6,12 @@ import streamlit as st
 import sys
 import os
 import asyncio
+import time
 from pathlib import Path
 import warnings
 import requests
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # Add the project root to the Python path
 project_root = Path(__file__).resolve().parent.parent
@@ -41,15 +42,109 @@ if sys.platform == 'win32':
 
 # Import components after event loop configuration
 from frontend.components.chat_interface import create_chat_interface
+from frontend.components.session_manager import render_session_management_sidebar
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8001')
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
 
 class BackendClient:
     """Client for communicating with the backend API."""
     
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip('/')
+        self.session_id = None
+        self.client_id = None
+        
+    def _get_session_headers(self) -> Dict[str, str]:
+        """Get session headers for API requests."""
+        headers = {}
+        if self.session_id:
+            headers['x-session-id'] = self.session_id
+        if self.client_id:
+            headers['x-client-id'] = self.client_id
+        return headers
+    
+    def create_session(self, client_id: Optional[str] = None) -> Dict[str, Any]:
+        """Create a new session."""
+        try:
+            response = requests.post(
+                f"{self.base_url}/sessions",
+                json={"client_id": client_id} if client_id else {},
+                timeout=10
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Store session information
+            self.session_id = result.get("session_id")
+            self.client_id = client_id
+            
+            return result
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+    
+    def get_session_info(self) -> Dict[str, Any]:
+        """Get current session information."""
+        if not self.session_id:
+            return {"error": "No active session"}
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/sessions/{self.session_id}",
+                headers=self._get_session_headers(),
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def list_sessions(self) -> Dict[str, Any]:
+        """List all active sessions."""
+        try:
+            response = requests.get(f"{self.base_url}/sessions", timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def clear_session_context(self) -> Dict[str, Any]:
+        """Clear the current session context."""
+        if not self.session_id:
+            return {"error": "No active session"}
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/sessions/{self.session_id}/clear",
+                headers=self._get_session_headers(),
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def delete_session(self) -> Dict[str, Any]:
+        """Delete the current session."""
+        if not self.session_id:
+            return {"error": "No active session"}
+        
+        try:
+            response = requests.delete(
+                f"{self.base_url}/sessions/{self.session_id}",
+                headers=self._get_session_headers(),
+                timeout=30
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Clear local session information
+            self.session_id = None
+            self.client_id = None
+            
+            return result
+        except Exception as e:
+            return {"error": str(e)}
         
     def health_check(self) -> Dict[str, Any]:
         """Check backend health."""
@@ -73,13 +168,15 @@ class BackendClient:
                 "message": message,
                 "conversation_history": conversation_history or [],
                 "agent_type": None,
-                "uploaded_files": uploaded_files or []
+                "uploaded_files": uploaded_files or [],
+                "session_id": self.session_id  # Include session ID in payload
             }
             
-            # Make the API call
+            # Make the API call with session headers
             response = requests.post(
                 f"{self.base_url}/chat",
                 json=payload,
+                headers=self._get_session_headers(),
                 timeout=300  # 5 minute timeout for complex queries
             )
             response.raise_for_status()
@@ -130,6 +227,7 @@ class BackendClient:
             response = requests.post(
                 f"{self.base_url}/upload",
                 files=files,
+                headers=self._get_session_headers(),
                 timeout=60
             )
             response.raise_for_status()
@@ -138,7 +236,10 @@ class BackendClient:
             return {"error": str(e)}
     
     def clear_context(self) -> Dict[str, Any]:
-        """Clear the backend context."""
+        """Clear the backend context (legacy method - use clear_session_context instead)."""
+        if self.session_id:
+            return self.clear_session_context()
+        
         try:
             response = requests.post(f"{self.base_url}/clear-context", timeout=30)
             response.raise_for_status()
@@ -153,6 +254,17 @@ def test_backend_connection():
     
     if health.get("status") == "healthy":
         st.success(f"✅ Connected to backend at {BACKEND_URL}")
+        
+        # Create a session for this client
+        client_id = f"streamlit_client_{int(time.time())}"
+        session_result = client.create_session(client_id)
+        
+        if "error" not in session_result:
+            st.success(f"✅ Session created: {session_result.get('session_id', 'Unknown')}")
+            st.info(f"Client ID: {client_id}")
+        else:
+            st.warning(f"⚠️ Session creation failed: {session_result.get('error')}")
+        
         return client
     else:
         st.error(f"❌ Failed to connect to backend at {BACKEND_URL}")
@@ -228,7 +340,7 @@ def main():
         
         # Create the chat interface using the backend client
         message_processor = create_message_processor(st.session_state.backend_client)
-        create_chat_interface(message_processor)
+        create_chat_interface(message_processor, st.session_state.backend_client)
         
         # Add backend status in sidebar
         with st.sidebar:
@@ -245,8 +357,16 @@ def main():
             # Show backend URL
             st.info(f"Backend: {BACKEND_URL}")
             
-            # Add clear backend context button
-            if st.button("🧹 Clear Backend Context"):
+            st.divider()
+            
+            # Enhanced session management UI
+            render_session_management_sidebar(st.session_state.backend_client)
+            
+            st.divider()
+            
+            # Legacy clear backend context button (for backward compatibility)
+            st.subheader("Legacy Actions")
+            if st.button("🧹 Clear Backend Context (Legacy)"):
                 with st.spinner("Clearing backend context..."):
                     result = st.session_state.backend_client.clear_context()
                     if "error" in result:

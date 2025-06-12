@@ -66,7 +66,7 @@ chmod +x deploy.sh
 #### Step 3: Deploy Main Server
 ```bash
 # Deploy the main server with Mistral 7B model
-./deploy.sh main
+sudo ./deploy.sh main
 ```
 
 This will:
@@ -80,11 +80,11 @@ This will:
 #### Step 4: Deploy Client Server(s)
 ```bash
 # Deploy first client server
-./deploy.sh client 1
+sudo ./deploy.sh client 1
 
 # Deploy additional clients (optional)
-./deploy.sh client 2
-./deploy.sh client 3
+sudo ./deploy.sh client 2
+sudo ./deploy.sh client 3
 ```
 
 Each client will:
@@ -100,10 +100,10 @@ If you prefer the simplified version:
 
 ```bash
 # Deploy main server (simple)
-./deploy-simple.sh main
+sudo ./deploy-simple.sh main
 
 # Deploy client server (simple)
-./deploy-simple.sh client 1
+sudo ./deploy-simple.sh client 1
 ```
 
 ### Option 3: Manual Deployment
@@ -303,7 +303,7 @@ echo -e "\n✅ Health check complete!"
 
 ```bash
 # Deploy everything
-./deploy.sh main && ./deploy.sh client 1
+sudo ./deploy.sh main && sudo ./deploy.sh client 1
 
 # Check status
 docker ps

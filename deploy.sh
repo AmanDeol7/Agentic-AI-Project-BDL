@@ -21,7 +21,7 @@ echo "Server Type: $SERVER_TYPE"
 
 case $SERVER_TYPE in
     "main")
-        echo "Deploying Main Server with LLaMA 3.2 1B..."
+        
         
         # Require GPU for main server
         if ! check_gpu_available; then
@@ -83,7 +83,9 @@ case $SERVER_TYPE in
         
         cd deployment
         echo "Starting client server containers..."
-        docker compose -f docker-compose.client-server.yml up -d
+        # Use unique project name for each client to avoid conflicts
+        PROJECT_NAME="agentic-client-$CLIENT_ID"
+        docker compose -p "$PROJECT_NAME" -f docker-compose.client-server.yml up -d
         
         echo "Client server #$CLIENT_ID deployed successfully!"
         echo "Frontend: http://localhost:$FRONTEND_PORT"
@@ -112,6 +114,6 @@ if [ "$SERVER_TYPE" = "client" ]; then
     echo "  - Backend Port: $BACKEND_PORT"
     echo "  - Main Server: $MAIN_SERVER_URL"
     echo ""
-    echo "Check logs: docker compose -f deployment/docker-compose.client-server.yml logs -f"
-    echo "Stop: docker compose -f deployment/docker-compose.client-server.yml down"
+    echo "Check logs: docker compose -p agentic-client-$CLIENT_ID -f deployment/docker-compose.client-server.yml logs -f"
+    echo "Stop: docker compose -p agentic-client-$CLIENT_ID -f deployment/docker-compose.client-server.yml down"
 fi

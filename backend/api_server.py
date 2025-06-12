@@ -1,6 +1,6 @@
 """
 FastAPI backend server for the Agentic AI Project.
-Provides REST API endpoints for the agentic code assistant.
+Provides REST API endpoints for the agentic code assistant with multi-client session support.
 """
 
 import os
@@ -17,7 +17,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -25,6 +25,7 @@ import uvicorn
 
 # Import backend components
 from backend.main import get_assistant, clear_assistant_instance
+from backend.utils.session_manager import get_session_manager, ClientSession
 from config.app_config import BASE_DIR, PATHS
 
 # Configure logging
@@ -59,6 +60,7 @@ class ChatRequest(BaseModel):
     conversation_history: Optional[List[ChatMessage]] = []
     agent_type: Optional[str] = None
     uploaded_files: Optional[List[str]] = []  # Add uploaded files list
+    session_id: Optional[str] = None  # Session ID for multi-client support
 
 class ChatResponse(BaseModel):
     response: str
@@ -66,6 +68,7 @@ class ChatResponse(BaseModel):
     conversation_history: List[ChatMessage]
     tool_results: Optional[List[Dict[str, Any]]] = []
     timestamp: str
+    session_id: str  # Include session ID in response
 
 class HealthResponse(BaseModel):
     status: str
@@ -76,32 +79,143 @@ class HealthResponse(BaseModel):
 class FileProcessRequest(BaseModel):
     query: str
     operation: str = "summarize"  # summarize, extract, analyze
+    session_id: Optional[str] = None  # Session ID for multi-client support
 
-# Global assistant instance management
+class SessionInfo(BaseModel):
+    session_id: str
+    client_id: Optional[str] = None
+    created_at: str
+    last_activity: str
+    conversation_length: int
+    uploaded_files_count: int
+    has_assistant: bool
+
+class SessionStats(BaseModel):
+    total_sessions: int
+    active_sessions: int
+    session_timeout_minutes: float
+    oldest_session: Optional[str] = None
+    newest_session: Optional[str] = None
+
+# Session management dependency
+def get_session_from_header(
+    x_session_id: Optional[str] = Header(None),
+    x_client_id: Optional[str] = Header(None)
+) -> ClientSession:
+    """Get or create a session based on headers."""
+    session_manager = get_session_manager()
+    session = session_manager.get_or_create_session(
+        session_id=x_session_id,
+        client_id=x_client_id
+    )
+    return session
+
+def get_assistant_for_session(session: ClientSession = Depends(get_session_from_header)):
+    """Get or create an assistant instance for a specific session."""
+    try:
+        if session.assistant_instance is None:
+            logger.info(f"Initializing assistant instance for session {session.session_id}...")
+            session.assistant_instance = get_assistant()
+            logger.info(f"Assistant instance initialized for session {session.session_id}")
+        return session.assistant_instance
+    except Exception as e:
+        logger.error(f"Failed to initialize assistant for session {session.session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Assistant initialization failed: {str(e)}")
+
+# Global assistant instance management (for backward compatibility)
 assistant_instance = None
 
 def get_assistant_instance():
-    """Get or create the assistant instance."""
+    """Get or create the global assistant instance (deprecated - use session-based approach)."""
     global assistant_instance
     try:
         if assistant_instance is None:
-            logger.info("Initializing assistant instance...")
+            logger.info("Initializing global assistant instance...")
             assistant_instance = get_assistant()
-            logger.info("Assistant instance initialized successfully")
+            logger.info("Global assistant instance initialized successfully")
         return assistant_instance
     except Exception as e:
-        logger.error(f"Failed to initialize assistant: {str(e)}")
+        logger.error(f"Failed to initialize global assistant: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Assistant initialization failed: {str(e)}")
 
 @app.get("/", response_model=Dict[str, str])
 async def root():
     """Root endpoint providing API information."""
     return {
-        "message": "Agentic AI Assistant API",
-        "version": "1.0.0",
+        "message": "Agentic AI Assistant API with Multi-Client Support",
+        "version": "2.0.0",
         "status": "running",
         "docs": "/docs",
         "health": "/health"
+    }
+
+# Session Management Endpoints
+@app.post("/sessions", response_model=Dict[str, str])
+async def create_session(client_id: Optional[str] = None):
+    """Create a new session for a client."""
+    session_manager = get_session_manager()
+    session_id = session_manager.create_session(client_id)
+    return {
+        "session_id": session_id,
+        "message": "Session created successfully",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/sessions/{session_id}", response_model=SessionInfo)
+async def get_session_info(session_id: str):
+    """Get information about a specific session."""
+    session_manager = get_session_manager()
+    session = session_manager.get_session(session_id)
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return SessionInfo(
+        session_id=session.session_id,
+        client_id=session.client_id,
+        created_at=session.created_at.isoformat(),
+        last_activity=session.last_activity.isoformat(),
+        conversation_length=len(session.conversation_history),
+        uploaded_files_count=len(session.uploaded_files),
+        has_assistant=session.assistant_instance is not None
+    )
+
+@app.delete("/sessions/{session_id}", response_model=Dict[str, str])
+async def delete_session(session_id: str):
+    """Delete a specific session and clean up its resources."""
+    session_manager = get_session_manager()
+    success = session_manager.delete_session(session_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return {
+        "message": f"Session {session_id} deleted successfully",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/sessions", response_model=Dict[str, Any])
+async def list_sessions():
+    """List all active sessions."""
+    session_manager = get_session_manager()
+    return {
+        "sessions": session_manager.list_sessions(),
+        "stats": session_manager.get_session_stats(),
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/sessions/{session_id}/clear", response_model=Dict[str, str])
+async def clear_session_context(session_id: str):
+    """Clear the context for a specific session."""
+    session_manager = get_session_manager()
+    success = session_manager.clear_session_context(session_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return {
+        "message": f"Session {session_id} context cleared successfully",
+        "timestamp": datetime.now().isoformat()
     }
 
 @app.get("/health", response_model=HealthResponse)
@@ -150,28 +264,39 @@ async def health_check():
         )
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, assistant: Any = Depends(get_assistant_instance)):
+async def chat(
+    request: ChatRequest, 
+    session: ClientSession = Depends(get_session_from_header),
+    assistant: Any = Depends(get_assistant_for_session)
+):
     """
     Main chat endpoint for conversing with the agentic assistant.
-    Supports both code and document-related queries.
+    Supports both code and document-related queries with session isolation.
     """
     try:
-        logger.info(f"Processing chat request: {request.message[:100]}...")
+        logger.info(f"Processing chat request for session {session.session_id}: {request.message[:100]}...")
         
-        # Convert Pydantic models to dictionaries
+        # Use session's conversation history if no history provided in request
         conversation_history = []
         if request.conversation_history:
             conversation_history = [
                 {"role": msg.role, "content": msg.content} 
                 for msg in request.conversation_history
             ]
+        else:
+            # Use session's stored conversation history
+            conversation_history = session.conversation_history.copy()
         
         # Process the message through the assistant
         result = assistant.process_message(
             message=request.message,
             conversation_history=conversation_history,
-            uploaded_files=request.uploaded_files or []
+            uploaded_files=request.uploaded_files or session.uploaded_files
         )
+        
+        # Update session's conversation history
+        if result.get("conversation_history"):
+            session.conversation_history = result["conversation_history"]
         
         # Convert response back to Pydantic models
         response_history = []
@@ -186,23 +311,27 @@ async def chat(request: ChatRequest, assistant: Any = Depends(get_assistant_inst
             agent_used=result.get("agent_used", "unknown"),
             conversation_history=response_history,
             tool_results=result.get("tool_results", []),
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            session_id=session.session_id
         )
         
     except Exception as e:
-        logger.error(f"Chat processing failed: {str(e)}")
+        logger.error(f"Chat processing failed for session {session.session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 @app.post("/upload", response_model=Dict[str, Any])
 async def upload_file(
     file: UploadFile = File(...),
-    assistant: Any = Depends(get_assistant_instance)
+    session: ClientSession = Depends(get_session_from_header),
+    assistant: Any = Depends(get_assistant_for_session)
 ):
     """
-    Upload a file for processing by the document agent.
-    Supports PDF, text files, and Excel files.
+    Upload a file for processing with session isolation.
+    Files are associated with the specific client session.
     """
     try:
+        logger.info(f"Uploading file {file.filename} for session {session.session_id}")
+        
         # Check file type
         allowed_extensions = {'.pdf', '.txt', '.md', '.doc', '.docx', '.xlsx', '.xls'}
         file_ext = Path(file.filename).suffix.lower()
@@ -213,55 +342,74 @@ async def upload_file(
                 detail=f"File type {file_ext} not supported. Allowed: {', '.join(allowed_extensions)}"
             )
         
-        # Create uploads directory if it doesn't exist
-        uploads_dir = PATHS["uploads"]
-        uploads_dir.mkdir(parents=True, exist_ok=True)
+        # Create session-specific uploads directory
+        session_uploads_dir = PATHS["uploads"] / f"session_{session.session_id}"
+        session_uploads_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save uploaded file
-        file_path = uploads_dir / file.filename
+        # Save the file with session prefix
+        file_path = session_uploads_dir / file.filename
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        logger.info(f"File uploaded successfully: {file.filename}")
+        # Add to session's uploaded files
+        file_path_str = str(file_path)
+        if file_path_str not in session.uploaded_files:
+            session.uploaded_files.append(file_path_str)
+        
+        logger.info(f"File uploaded successfully for session {session.session_id}: {file_path}")
         
         return {
-            "message": "File uploaded successfully",
+            "message": f"File {file.filename} uploaded successfully",
             "filename": file.filename,
-            "file_path": str(file_path),
+            "file_path": file_path_str,
+            "session_id": session.session_id,
             "size": file_path.stat().st_size,
             "type": file_ext,
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        logger.error(f"File upload failed: {str(e)}")
+        logger.error(f"File upload failed for session {session.session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 @app.post("/process-file", response_model=ChatResponse)
 async def process_file(
     request: FileProcessRequest,
     file: UploadFile = File(...),
-    assistant: Any = Depends(get_assistant_instance)
+    session: ClientSession = Depends(get_session_from_header),
+    assistant: Any = Depends(get_assistant_for_session)
 ):
     """
-    Upload and process a file with a specific query.
+    Upload and process a file with a specific query within a session context.
     Combines file upload and processing in one endpoint.
     """
     try:
-        # First upload the file
-        uploads_dir = PATHS["uploads"]
-        uploads_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Processing file {file.filename} for session {session.session_id}")
         
-        file_path = uploads_dir / file.filename
+        # Create session-specific uploads directory
+        session_uploads_dir = PATHS["uploads"] / f"session_{session.session_id}"
+        session_uploads_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save the file
+        file_path = session_uploads_dir / file.filename
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        # Add to session's uploaded files
+        file_path_str = str(file_path)
+        if file_path_str not in session.uploaded_files:
+            session.uploaded_files.append(file_path_str)
         
         # Process the file with the query
         result = assistant.process_message(
             message=request.query,
-            conversation_history=[],
-            uploaded_files=[str(file_path)]
+            conversation_history=session.conversation_history.copy(),
+            uploaded_files=[file_path_str]
         )
+        
+        # Update session's conversation history
+        if result.get("conversation_history"):
+            session.conversation_history = result["conversation_history"]
         
         # Convert response
         response_history = []
@@ -276,58 +424,78 @@ async def process_file(
             agent_used=result.get("agent_used", "unknown"),
             conversation_history=response_history,
             tool_results=result.get("tool_results", []),
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            session_id=session.session_id
         )
         
     except Exception as e:
-        logger.error(f"File processing failed: {str(e)}")
+        logger.error(f"File processing failed for session {session.session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"File processing failed: {str(e)}")
 
 @app.post("/execute-code", response_model=Dict[str, Any])
 async def execute_code(
     code: str = Form(...),
     language: str = Form(default="python"),
-    assistant: Any = Depends(get_assistant_instance)
+    session: ClientSession = Depends(get_session_from_header),
+    assistant: Any = Depends(get_assistant_for_session)
 ):
     """
-    Execute code directly through the code agent.
+    Execute code directly through the code agent with session isolation.
     Supports Python and C/C++ code execution.
     """
     try:
+        logger.info(f"Executing {language} code for session {session.session_id}")
+        
         # Create a message that requests code execution
         message = f"Execute this {language} code:\n```{language}\n{code}\n```"
         
         result = assistant.process_message(
             message=message,
-            conversation_history=[],
-            uploaded_files=[]
+            conversation_history=session.conversation_history.copy(),
+            uploaded_files=session.uploaded_files
         )
+        
+        # Update session's conversation history
+        if result.get("conversation_history"):
+            session.conversation_history = result["conversation_history"]
         
         return {
             "result": result.get("response", "No output"),
             "agent_used": result.get("agent_used", "unknown"),
             "tool_results": result.get("tool_results", []),
+            "session_id": session.session_id,
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        logger.error(f"Code execution failed: {str(e)}")
+        logger.error(f"Code execution failed for session {session.session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Code execution failed: {str(e)}")
 
 @app.post("/clear-context", response_model=Dict[str, str])
-async def clear_context(assistant: Any = Depends(get_assistant_instance)):
+async def clear_context(
+    session: ClientSession = Depends(get_session_from_header),
+    assistant: Any = Depends(get_assistant_for_session)
+):
     """
-    Clear the assistant's context and memory.
+    Clear the assistant's context and memory for a specific session.
     Useful for starting fresh conversations.
     """
     try:
-        assistant.clear_context()
-        return {
-            "message": "Context cleared successfully",
-            "timestamp": datetime.now().isoformat()
-        }
+        # Clear session context
+        session_manager = get_session_manager()
+        success = session_manager.clear_session_context(session.session_id)
+        
+        if success:
+            return {
+                "message": f"Context cleared successfully for session {session.session_id}",
+                "session_id": session.session_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to clear session context")
+            
     except Exception as e:
-        logger.error(f"Context clearing failed: {str(e)}")
+        logger.error(f"Context clearing failed for session {session.session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Context clearing failed: {str(e)}")
 
 @app.post("/reset-assistant", response_model=Dict[str, str])

@@ -6,12 +6,13 @@ from typing import List, Dict, Any, Callable
 import os
 from pathlib import Path
 
-def clear_system_context(remove_files_from_disk=False):
+def clear_system_context(remove_files_from_disk=False, backend_client=None):
     """
     Clear all system context including messages, files, and tool results.
     
     Args:
         remove_files_from_disk: If True, also delete uploaded files from disk
+        backend_client: BackendClient instance for session-based clearing
     """
     # Get list of files to potentially remove before clearing session state
     files_to_remove = st.session_state.uploaded_files.copy() if remove_files_from_disk else []
@@ -24,10 +25,18 @@ def clear_system_context(remove_files_from_disk=False):
     
     # Clear backend assistant context
     try:
-        # Import here to avoid circular imports
-        from backend.main import clear_assistant_instance
-        clear_assistant_instance()
-        st.success("🧹 Backend context cleared successfully")
+        if backend_client and hasattr(backend_client, 'clear_session_context'):
+            # Use session-based clearing if available
+            result = backend_client.clear_session_context()
+            if "error" not in result:
+                st.success("🧹 Session context cleared successfully")
+            else:
+                st.warning(f"Could not clear session context: {result['error']}")
+        else:
+            # Fallback to legacy method
+            from backend.main import clear_assistant_instance
+            clear_assistant_instance()
+            st.success("🧹 Backend context cleared successfully")
     except Exception as e:
         st.warning(f"Could not clear backend context: {str(e)}")
     
@@ -69,12 +78,13 @@ def display_chat_messages():
         with st.chat_message(role):
             st.markdown(content)
 
-def create_chat_interface(process_message_callback: Callable):
+def create_chat_interface(process_message_callback: Callable, backend_client=None):
     """
     Create the chat interface component.
     
     Args:
         process_message_callback: Callback function to process user messages
+        backend_client: Backend client instance for session management
     """
     # Initialize chat state
     initialize_chat_state()
@@ -82,6 +92,16 @@ def create_chat_interface(process_message_callback: Callable):
     # Create sidebar for agent and tool information
     with st.sidebar:
         st.header("System Information")
+        
+        # Show session information if backend_client is available
+        if backend_client and hasattr(backend_client, 'session_id'):
+            st.subheader("Session Info")
+            if backend_client.session_id:
+                st.success(f"Session: `{backend_client.session_id[:8]}...`")
+                if backend_client.client_id:
+                    st.info(f"Client: `{backend_client.client_id}`")
+            else:
+                st.warning("No active session")
         
         # Add clear context button at the top
         st.subheader("System Control")
@@ -147,7 +167,7 @@ def create_chat_interface(process_message_callback: Callable):
                 else:
                     # Get the remove files option
                     remove_files = st.session_state.get('remove_files_option', False)
-                    clear_system_context(remove_files_from_disk=remove_files)
+                    clear_system_context(remove_files_from_disk=remove_files, backend_client=backend_client)
                     st.session_state.confirm_clear_complete = False
                     
                     # Force reinitialization of assistant in the main app
