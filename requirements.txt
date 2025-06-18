@@ -10,8 +10,6 @@ pandas>=2.1.2
 numpy>=1.26.1
 python-dotenv>=1.0.0
 watchdog>=3.0.0  # needed for Streamlit live reloading
-ipykernel
-matplotlib
 uvicorn
 fastapi
 python-multipart  # Required for FastAPI file uploads
