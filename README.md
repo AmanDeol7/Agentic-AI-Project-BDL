@@ -73,6 +73,23 @@ cd Agentic-AI-Project-BDL
 # Automated setup (installs dependencies and starts Ollama)
 python setup-dev.py
 
+
+
+#for bdl use 
+# create and activate venv
+python3 -m venv venv
+source myenv/bin/activate
+
+
+#download wheel files 
+pip download -r requirements.txt -d ./packages
+
+
+#install on machine
+pip install --no-index --find-links=./packages -r requirements.txt
+
+
+
 # Launch the application
 ollama serve
 uvicorn backend.api_server:app --host 0.0.0.0 --port 8000
