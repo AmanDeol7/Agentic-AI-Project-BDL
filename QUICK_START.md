@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
 ## Prerequisites
 - NVIDIA GPU (required for main server)
@@ -44,12 +44,12 @@ sudo ./deploy.sh client 4
 
 ## Key Features Working
 
-✅ **Multi-Client Support**: Isolated sessions for concurrent users  
-✅ **GPU Acceleration**: Fast inference with NVIDIA GPU  
-✅ **Document Analysis**: PDF, Excel, Word, text file processing  
-✅ **Code Generation**: Python, C, C++ with execution support  
-✅ **Session Management**: Advanced session control and monitoring  
-✅ **File Isolation**: Session-specific file uploads and processing  
+**Multi-Client Support**: Isolated sessions for concurrent users  
+**GPU Acceleration**: Fast inference with NVIDIA GPU  
+**Document Analysis**: PDF, Excel, Word, text file processing  
+**Code Generation**: Python, C, C++ with execution support  
+**Session Management**: Advanced session control and monitoring  
+**File Isolation**: Session-specific file uploads and processing  
 
 ## Quick Commands
 
@@ -70,9 +70,9 @@ sudo ./deploy.sh client 2
 
 ## Need Help?
 
-- 📖 **Full Guide**: [README.md](README.md)
-- 🚀 **Deployment**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)  
-- 👥 **Multi-Client**: [MULTI_CLIENT_USAGE_GUIDE.md](MULTI_CLIENT_USAGE_GUIDE.md)
-- 🐛 **Issues**: Check logs with `sudo docker logs <container-name>`
+- **Full Guide**: [README.md](README.md)
+- **Deployment**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)  
+- **Multi-Client**: [MULTI_CLIENT_USAGE_GUIDE.md](MULTI_CLIENT_USAGE_GUIDE.md)
+- **Issues**: Check logs with `sudo docker logs <container-name>`
 
-**🎉 You're ready to go!** Start chatting with your AI assistant and enjoy the multi-client capabilities!
+**You're ready to go!** Start chatting with your AI assistant and enjoy the multi-client capabilities!

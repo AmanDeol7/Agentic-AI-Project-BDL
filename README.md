@@ -2,14 +2,14 @@
 
 A sophisticated multi-agent AI system for code generation and document analysis using local language models with GPU acceleration and multi-client session support.
 
-> 🚀 **Quick Start**: New to this project? Check out [QUICK_START.md](QUICK_START.md) for 1-minute deployment!
+> **Quick Start**: New to this project? Check out [QUICK_START.md](QUICK_START.md) for 1-minute deployment!
 
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://www.docker.com/)
 [![GPU](https://img.shields.io/badge/GPU-NVIDIA-green.svg)](https://developer.nvidia.com/cuda-downloads)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🚀 Features
+## Features
 
 ### Core Capabilities
 - **Code Agent**: Generates, analyzes, and executes Python, C, and C++ code with intelligent error handling
@@ -32,7 +32,7 @@ A sophisticated multi-agent AI system for code generation and document analysis 
 - **Session Management**: Advanced session isolation for enterprise-grade multi-user support
 - **GPU Support**: Automatic GPU detection and utilization for optimal performance
 
-## 🏃 Quick Start
+## Quick Start
 
 ### Option 1: Production Docker Deployment (Recommended)
 Perfect for production use with multi-client support:
@@ -74,7 +74,10 @@ cd Agentic-AI-Project-BDL
 python setup-dev.py
 
 # Launch the application
-python main.py
+ollama serve
+uvicorn backend.api_server:app --host 0.0.0.0 --port 8000
+streamlit run main.py
+
 ```
 
 ### Option 3: API-Only Mode
@@ -92,7 +95,7 @@ curl -X POST "http://localhost:8000/chat" \
   -d '{"message": "Generate a Python function to calculate fibonacci numbers"}'
 ```
 
-## 📋 Requirements
+## Requirements
 
 ### System Requirements
 - **Python**: 3.12+ (for local development)
@@ -128,7 +131,7 @@ wmic computersystem get TotalPhysicalMemory  # Windows
 df -h
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Multi-Client System Overview
 ```
@@ -174,15 +177,15 @@ df -h
 2. **Local Development**: All components on a single machine for development
 3. **API-Only**: Backend service for external integration and custom frontends
 
-## 🌐 Multi-Client Support
+## Multi-Client Support
 
 ### Key Features
-- ✅ **Session Isolation**: Complete separation between different client sessions
-- ✅ **Concurrent Users**: Support unlimited simultaneous users with isolated contexts
-- ✅ **File Separation**: Session-specific file uploads and processing
-- ✅ **Independent Conversations**: Each client maintains separate chat history
-- ✅ **Session Management**: Advanced UI for session control and monitoring
-- ✅ **Automatic Cleanup**: Session timeout and resource management
+- **Session Isolation**: Complete separation between different client sessions
+- **Concurrent Users**: Support unlimited simultaneous users with isolated contexts
+- **File Separation**: Session-specific file uploads and processing
+- **Independent Conversations**: Each client maintains separate chat history
+- **Session Management**: Advanced UI for session control and monitoring
+- **Automatic Cleanup**: Session timeout and resource management
 
 ### Use Cases
 ```bash
@@ -203,36 +206,36 @@ Student 1:        http://localhost:8503
 Student 2:        http://localhost:8504
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Agentic-AI-Project-BDL/
-├── 🚀 main.py                       # Local application entry point
-├── ⚙️ setup-dev.py                  # Development setup script  
-├── 🐳 deploy.sh                     # Docker deployment script (use with sudo)
-├── 📖 README.md                     # This file - project overview
-├── 📖 DEPLOYMENT_GUIDE.md           # Detailed deployment instructions
-├── 📖 MULTI_CLIENT_USAGE_GUIDE.md   # Multi-client setup and usage
-├── 📖 MULTI_CLIENT_SESSION_SUMMARY.md # Implementation details
-├── 🔧 backend/
-│   ├── 🤖 agents/                   # AI agent implementations
+├── main.py                       # Local application entry point
+├── setup-dev.py                  # Development setup script  
+├── deploy.sh                     # Docker deployment script (use with sudo)
+├── README.md                     # This file - project overview
+├── DEPLOYMENT_GUIDE.md           # Detailed deployment instructions
+├── MULTI_CLIENT_USAGE_GUIDE.md   # Multi-client setup and usage
+├── MULTI_CLIENT_SESSION_SUMMARY.md # Implementation details
+├── backend/
+│   ├── agents/                   # AI agent implementations
 │   │   ├── base_agent.py            # Base agent class
 │   │   ├── code_agent.py            # Code generation & analysis
 │   │   └── doc_agent.py             # Document processing
-│   ├── 🛠️ tools/                    # Specialized tools
+│   ├── tools/                    # Specialized tools
 │   │   ├── code_tools/              # Code execution & analysis
 │   │   └── doc_tools/               # Document processing tools
-│   ├── 🧠 llm_providers/            # LLM integrations
+│   ├── llm_providers/            # LLM integrations
 │   │   ├── ollama_provider.py       # Ollama integration
 │   │   └── tensorrt_provider.py     # TensorRT-LLM support
-│   ├── 🎭 graphs/                   # Workflow orchestration
+│   ├── graphs/                   # Workflow orchestration
 │   │   └── agent_controller.py      # LangGraph controller
-│   ├── 🔗 utils/                    # Utilities
+│   ├── utils/                    # Utilities
 │   │   ├── memory.py                # Memory management
 │   │   ├── router.py                # Request routing
 │   │   └── session_manager.py       # Multi-client session management
-│   └── 🌐 api_server.py             # FastAPI backend server
-├── 🎨 frontend/
+│   └── api_server.py             # FastAPI backend server
+├── frontend/
 │   ├── app.py                       # Standalone Streamlit app
 │   ├── client_app.py                # Multi-client frontend
 │   ├── session_manager_app.py       # Session management interface
@@ -240,14 +243,14 @@ Agentic-AI-Project-BDL/
 │       ├── chat_interface.py        # Chat UI with session support
 │       ├── file_uploader.py         # File upload component
 │       └── session_manager.py       # Session management UI
-├── ⚙️ config/                       # Configuration files
+├── config/                       # Configuration files
 │   ├── app_config.py                # Main application config
 │   └── llm_config.py                # LLM-specific settings
-├── 🐳 deployment/                   # Docker configurations
+├── deployment/                   # Docker configurations
 │   ├── docker-compose.*.yml         # Various deployment configs
 │   ├── Dockerfile.*                 # Service-specific Dockerfiles
 │   └── scripts/                     # Deployment scripts
-└── 📊 data/                         # Data storage
+└── data/                         # Data storage
     └── uploads/                     # User uploaded files
         └── session_{id}/            # Session-specific file isolation
 ```
@@ -259,7 +262,7 @@ Agentic-AI-Project-BDL/
 - **Workflow Engine**: LangGraph-based orchestration for complex tasks
 - **API Layer**: RESTful API for external integrations
 
-## ⚙️ Configuration & Customization
+## Configuration & Customization
 
 ### Model Selection
 
@@ -315,17 +318,17 @@ For production deployments, see the [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) f
 - Network configuration
 - Security settings
 
-## 💡 Usage Examples
+## Usage Examples
 
 ### Code Generation
 ```
 User: "Create a Python function to analyze sentiment of text using transformers"
 
 AI Response:
-✅ Code generated and tested
-✅ Dependencies identified  
-✅ Example usage provided
-✅ Error handling included
+- Code generated and tested
+- Dependencies identified  
+- Example usage provided
+- Error handling included
 ```
 
 ### Document Analysis
@@ -334,10 +337,10 @@ Upload: business_report.pdf (2.3MB)
 Query: "What are the key financial metrics mentioned?"
 
 AI Response:
-📊 Revenue: $2.4M (↑15% YoY)
-📈 Profit Margin: 18.5%
-💰 Cash Flow: $450K positive
-📋 Full summary with page references
+- Revenue: $2.4M (↑15% YoY)
+- Profit Margin: 18.5%
+- Cash Flow: $450K positive
+- Full summary with page references
 ```
 
 ### Multi-Agent Workflow
@@ -345,10 +348,10 @@ AI Response:
 Query: "Analyze this CSV file and create a visualization script"
 
 Process:
-1. 📄 Document Agent: Parses CSV structure  
-2. 🔄 Router: Determines need for both agents
-3. 💻 Code Agent: Generates matplotlib script
-4. 🎯 Result: Working visualization code + data insights
+1. Document Agent: Parses CSV structure  
+2. Router: Determines need for both agents
+3. Code Agent: Generates matplotlib script
+4. Result: Working visualization code + data insights
 ```
 
 ### API Integration
@@ -364,7 +367,7 @@ response = requests.post("http://localhost:8000/chat", json={
 print(response.json()["response"])
 ```
 
-## 🛠️ Development Workflow
+## Development Workflow
 
 ### Setting Up Development Environment
 ```bash
@@ -413,7 +416,7 @@ python -m pytest tests/test_api.py
 python -m pytest --cov=backend tests/
 ```
 
-## 📊 Monitoring & Logs
+## Monitoring & Logs
 
 ### Health Checks
 ```bash
@@ -451,7 +454,7 @@ docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 netstat -i
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 

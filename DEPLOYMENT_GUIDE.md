@@ -70,10 +70,10 @@ sudo ./deploy.sh main
 ```
 
 This will:
-- ✅ Install Ollama if not present
-- ✅ Start Docker containers (Ollama + Backend API)
-- ✅ Pull Mistral 7B model (~4.1GB download)
-- ✅ Expose services on:
+- Install Ollama if not present
+- Start Docker containers (Ollama + Backend API)
+- Pull Mistral 7B model (~4.1GB download)
+- Expose services on:
   - Backend API: `http://localhost:8000`
   - Ollama API: `http://localhost:11434`
 
@@ -88,8 +88,8 @@ sudo ./deploy.sh client 3
 ```
 
 Each client will:
-- ✅ Ask for main server URL (default: `http://localhost:8000`)
-- ✅ Start on unique ports:
+- Ask for main server URL (default: `http://localhost:8000`)
+- Start on unique ports:
   - Client 1: Frontend `http://localhost:8501`, Backend Proxy `http://localhost:8001`
   - Client 2: Frontend `http://localhost:8502`, Backend Proxy `http://localhost:8002`
   - And so on...
@@ -283,20 +283,20 @@ Create a simple health check script:
 
 ```bash
 #!/bin/bash
-echo "🔍 Checking Agentic AI Application Health..."
+echo "Checking Agentic AI Application Health..."
 
 # Check containers
-echo "📦 Container Status:"
+echo "Container Status:"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 # Check services
-echo -e "\n🌐 Service Health:"
+echo -e "\nService Health:"
 echo "Main Backend: $(curl -s http://localhost:8000/health || echo 'FAILED')"
 echo "Ollama API: $(curl -s http://localhost:11434/api/tags || echo 'FAILED')"
 echo "Client Frontend: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8501 || echo 'FAILED')"
 echo "Client Backend: $(curl -s http://localhost:8001/health || echo 'FAILED')"
 
-echo -e "\n✅ Health check complete!"
+echo -e "\nHealth check complete!"
 ```
 
 ## Quick Commands Reference

@@ -40,7 +40,7 @@ if sys.platform == 'win32':
 def auto_configure_environment():
     """Automatically configure the environment before starting the app."""
     try:
-        print("🔍 Auto-configuring environment...")
+        print("Auto-configuring environment...")
         
         # Import and run auto-configuration
         from auto_setup import auto_configure, update_config
@@ -48,14 +48,14 @@ def auto_configure_environment():
         service_type = auto_configure()
         if service_type:
             update_config(service_type)
-            print("✅ Environment configured successfully!")
+            print("Environment configured successfully!")
             return True
         else:
-            print("❌ Failed to configure environment")
+            print("Failed to configure environment")
             return False
     except Exception as e:
-        print(f"⚠️  Auto-configuration failed: {e}")
-        print("🔄 Proceeding with default configuration...")
+        print(f"Auto-configuration failed: {e}")
+        print("Proceeding with default configuration...")
         return True  # Continue with default config
 
 def main():

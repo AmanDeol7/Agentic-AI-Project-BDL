@@ -303,7 +303,7 @@ For C programming specifically:
                 response = f"## Code Execution Results\n\n"
                 
                 if success:
-                    response += f"✅ **Successfully executed {language.upper()} code**\n\n"
+                    response += f"**Successfully executed {language.upper()} code**\n\n"
                     if output:
                         response += f"**Output:**\n```\n{output.strip()}\n```\n\n"
                     else:
@@ -314,7 +314,7 @@ For C programming specifically:
                     
                     response += "The code executed successfully and produced the expected result."
                 else:
-                    response += f"❌ **Failed to execute {language.upper()} code**\n\n"
+                    response += f"**Failed to execute {language.upper()} code**\n\n"
                     if error:
                         response += f"**Error:**\n```\n{error.strip()}\n```\n\n"
                         if "compilation error" in error.lower():
@@ -372,7 +372,7 @@ For C programming specifically:
                     success = result.get("success", False)
                     language = result.get("language", "unknown")
                     
-                    status = "✅ Successfully" if success else "❌ Failed to"
+                    status = "Successfully" if success else "Failed to"
                     tool_info += f"- {status} executed {language} code using '{tool_name}' tool.\n"
                     
                     if not success and "error" in result:

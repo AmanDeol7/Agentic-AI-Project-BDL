@@ -34,13 +34,22 @@ class AgenticAssistant:
     Main controller for the agentic code assistant with TensorRT-LLM support.
     """
     
-    def __init__(self, use_tensorrt: bool = True):
+    def __init__(self, use_tensorrt: bool = False):  # Default to False for local dev
         """Initialize the agentic assistant with agents and tools."""
         # Get model name from environment variable or config
         model_name = os.getenv('LLM_MODEL', LLM_CONFIG["model"])
         
-        # Initialize LLM provider based on preference
-        if use_tensorrt:
+        # For local development, prefer Ollama over TensorRT
+        # Check if Ollama is available first
+        try:
+            import requests
+            response = requests.get("http://localhost:11434/api/tags", timeout=3)
+            ollama_available = response.status_code == 200
+        except:
+            ollama_available = False
+        
+        # Initialize LLM provider based on availability and preference
+        if use_tensorrt and not ollama_available:
             self.llm_provider = TensorRTProvider(
                 server_url="http://localhost:8000",  # Default TensorRT-LLM server
                 model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0",  # Use the actual model available
@@ -56,6 +65,7 @@ class AgenticAssistant:
                     max_tokens=LLM_CONFIG["max_tokens"]
                 )
         else:
+            # Use Ollama by default for local development
             self.llm_provider = OllamaProvider(
                 model_name=model_name,
                 temperature=LLM_CONFIG["temperature"],
@@ -116,7 +126,7 @@ class AgenticAssistant:
         if hasattr(self.workflow, 'clear_context'):
             self.workflow.clear_context()
         
-        print("🧹 Backend assistant context cleared successfully")
+        print("Backend assistant context cleared successfully")
 
     def process_query(
         self, 
@@ -219,4 +229,4 @@ def clear_assistant_instance():
         _assistant.clear_context()
         # Remove the instance to force re-initialization
         _assistant = None
-        print("🔄 Assistant instance cleared - will reinitialize on next request")
+        print("Assistant instance cleared - will reinitialize on next request")

@@ -113,7 +113,7 @@ class DevSetup:
     
     def install_dependencies(self) -> bool:
         """Install Python dependencies."""
-        self.logger.info("📦 Installing Python dependencies...")
+        self.logger.info("Installing Python dependencies...")
         
         # Check for uv first (faster)
         if self.check_command("uv"):
@@ -138,7 +138,7 @@ class DevSetup:
             self.logger.success("Ollama already installed")
             return True
         
-        self.logger.info("🤖 Installing Ollama...")
+        self.logger.info("Installing Ollama...")
         
         # Download and run Ollama installer
         try:
@@ -180,7 +180,7 @@ class DevSetup:
             self.logger.success("Ollama service is already running")
             return True
         
-        self.logger.info("🔄 Starting Ollama service...")
+        self.logger.info("Starting Ollama service...")
         
         # Start Ollama in background
         try:
@@ -211,7 +211,7 @@ class DevSetup:
         if models is None:
             models = DEFAULT_MODELS
         
-        self.logger.info("📥 Downloading AI models...")
+        self.logger.info("Downloading AI models...")
         
         # Check available models
         try:
@@ -247,7 +247,7 @@ class DevSetup:
     
     def create_directories(self) -> bool:
         """Create necessary project directories."""
-        self.logger.info("📁 Creating necessary directories...")
+        self.logger.info("Creating necessary directories...")
         
         directories = [
             "data/uploads",
@@ -263,7 +263,7 @@ class DevSetup:
     
     def verify_setup(self) -> bool:
         """Verify that the setup was successful."""
-        self.logger.info("🔍 Verifying setup...")
+        self.logger.info("Verifying setup...")
         
         # Check Ollama API
         if self.check_service("http://localhost:11434/api/tags"):
@@ -300,7 +300,7 @@ class DevSetup:
     
     def start_application(self):
         """Start the Streamlit application."""
-        self.logger.info("🚀 Starting Streamlit application...")
+        self.logger.info("Starting Streamlit application...")
         
         try:
             # Change to project directory
@@ -316,10 +316,10 @@ class DevSetup:
     def show_completion_message(self):
         """Show setup completion message with next steps."""
         print(f"\n{Colors.GREEN}{'='*60}{Colors.NC}")
-        print(f"{Colors.GREEN}{'🎉 Setup Complete! 🎉':^60}{Colors.NC}")
+        print(f"{Colors.GREEN}{'Setup Complete!':^60}{Colors.NC}")
         print(f"{Colors.GREEN}{'='*60}{Colors.NC}\n")
         
-        print(f"{Colors.BLUE}🚀 Next Steps:{Colors.NC}")
+        print(f"{Colors.BLUE}Next Steps:{Colors.NC}")
         print(f"   1. Start the Streamlit application:")
         print(f"      {Colors.YELLOW}streamlit run main.py{Colors.NC}")
         print(f"")
@@ -329,7 +329,7 @@ class DevSetup:
         print(f"   3. Access the web interface at:")
         print(f"      {Colors.YELLOW}http://localhost:8501{Colors.NC}")
         print(f"")
-        print(f"{Colors.BLUE}💡 Tips:{Colors.NC}")
+        print(f"{Colors.BLUE}Tips:{Colors.NC}")
         print(f"   • Use Ctrl+C to stop services")
         print(f"   • Run 'python dev.py' for development mode")
         print(f"   • Check logs if you encounter issues")
@@ -337,7 +337,7 @@ class DevSetup:
     
     def full_setup(self, start_app: bool = False) -> bool:
         """Run the complete setup process."""
-        self.logger.header("🚀 Agentic AI Development Setup")
+        self.logger.header("Agentic AI Development Setup")
         
         # Check system requirements
         if not self.check_python_version():
@@ -359,7 +359,7 @@ class DevSetup:
         ]
         
         for step_name, step_func in steps:
-            self.logger.info(f"🔧 {step_name}...")
+            self.logger.info(f"{step_name}...")
             if not step_func():
                 self.logger.error(f"Failed: {step_name}")
                 return False

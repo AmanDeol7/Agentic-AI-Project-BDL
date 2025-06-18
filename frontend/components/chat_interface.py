@@ -29,14 +29,14 @@ def clear_system_context(remove_files_from_disk=False, backend_client=None):
             # Use session-based clearing if available
             result = backend_client.clear_session_context()
             if "error" not in result:
-                st.success("🧹 Session context cleared successfully")
+                st.success("Session context cleared successfully")
             else:
                 st.warning(f"Could not clear session context: {result['error']}")
         else:
             # Fallback to legacy method
             from backend.main import clear_assistant_instance
             clear_assistant_instance()
-            st.success("🧹 Backend context cleared successfully")
+            st.success("Backend context cleared successfully")
     except Exception as e:
         st.warning(f"Could not clear backend context: {str(e)}")
     
@@ -52,7 +52,7 @@ def clear_system_context(remove_files_from_disk=False, backend_client=None):
                 st.warning(f"Could not remove file {os.path.basename(file_path)}: {str(e)}")
         
         if removed_count > 0:
-            st.info(f"🗂️ Removed {removed_count} files from disk")
+            st.info(f"Removed {removed_count} files from disk")
 
 def initialize_chat_state():
     """Initialize the chat state in the Streamlit session."""
@@ -126,12 +126,12 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
             
             col1, col2 = st.columns(2)
             with col1:
-                clear_basic = st.button("🗑️ Clear Chat", 
+                clear_basic = st.button("Clear Chat", 
                                        type="secondary", 
                                        help="Clear messages and session state only",
                                        use_container_width=True)
             with col2:
-                clear_complete = st.button("🧹 Clear All", 
+                clear_complete = st.button("Clear All", 
                                          type="secondary", 
                                          help="Clear everything including backend context",
                                          use_container_width=True)
@@ -143,7 +143,7 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
                 
                 if not st.session_state.confirm_clear_basic:
                     st.session_state.confirm_clear_basic = True
-                    st.warning("⚠️ This will clear chat history and uploaded files. Click again to confirm.")
+                    st.warning("This will clear chat history and uploaded files. Click again to confirm.")
                     st.rerun()
                 else:
                     # Clear only frontend state
@@ -152,7 +152,7 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
                     st.session_state.last_agent_used = None
                     st.session_state.last_tool_executions = []
                     st.session_state.confirm_clear_basic = False
-                    st.success("✅ Chat history cleared!")
+                    st.success("Chat history cleared!")
                     st.rerun()
             
             # Handle complete clear
@@ -162,7 +162,7 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
                 
                 if not st.session_state.confirm_clear_complete:
                     st.session_state.confirm_clear_complete = True
-                    st.warning("⚠️ This will completely reset the system including backend context. Click again to confirm.")
+                    st.warning("This will completely reset the system including backend context. Click again to confirm.")
                     st.rerun()
                 else:
                     # Get the remove files option
@@ -174,26 +174,26 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
                     if 'assistant' in st.session_state:
                         del st.session_state.assistant
                     
-                    st.success("✅ Complete system reset successful!")
+                    st.success("Complete system reset successful!")
                     st.rerun()
             
             # Add option to clear files from disk
             if st.session_state.uploaded_files:
                 st.session_state.remove_files_option = st.checkbox(
-                    "🗂️ Also remove uploaded files from disk", 
+                    "Also remove uploaded files from disk", 
                     help="Delete the actual files from the uploads directory"
                 )
         else:
-            st.info("💡 No context to clear")
+            st.info("No context to clear")
         
         # Reset confirmation if user does something else
         if "confirm_clear_basic" in st.session_state and st.session_state.confirm_clear_basic:
-            if st.button("❌ Cancel", type="primary", use_container_width=True):
+            if st.button("Cancel", type="primary", use_container_width=True):
                 st.session_state.confirm_clear_basic = False
                 st.rerun()
         
         if "confirm_clear_complete" in st.session_state and st.session_state.confirm_clear_complete:
-            if st.button("❌ Cancel", type="primary", use_container_width=True):
+            if st.button("Cancel", type="primary", use_container_width=True):
                 st.session_state.confirm_clear_complete = False
                 st.rerun()
         
@@ -204,13 +204,13 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
         if st.session_state.last_agent_used:
             agent_name = st.session_state.last_agent_used
             if agent_name == "code_agent":
-                agent_emoji = "💻"
+                agent_emoji = "Code"
                 agent_desc = "Code generation and analysis"
             elif agent_name == "doc_agent":
-                agent_emoji = "📄"
+                agent_emoji = "Document"
                 agent_desc = "Document parsing and analysis"
             else:
-                agent_emoji = "🤖"
+                agent_emoji = "Agent"
                 agent_desc = "Unknown agent type"
                 
             st.markdown(f"**{agent_emoji} {agent_name.replace('_', ' ').title()}**")
@@ -226,13 +226,13 @@ def create_chat_interface(process_message_callback: Callable, backend_client=Non
                 success = tool_info.get("success", False)
                 
                 if tool_name == "code_executor":
-                    tool_emoji = "⚙️"
+                    tool_emoji = "Code Executor"
                 elif tool_name == "pdf_loader":
-                    tool_emoji = "📎"
+                    tool_emoji = "PDF Loader"
                 else:
-                    tool_emoji = "🔧"
+                    tool_emoji = "Tool"
                 
-                status_emoji = "✅" if success else "❌"
+                status_emoji = "Success" if success else "Failed"
                 
                 with st.expander(f"{tool_emoji} {tool_name} {status_emoji}"):
                     result = tool_info.get("result", {})

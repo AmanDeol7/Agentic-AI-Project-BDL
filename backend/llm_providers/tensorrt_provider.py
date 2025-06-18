@@ -142,14 +142,22 @@ class TensorRTProvider:
     def _fallback_generation(self, prompt: str) -> str:
         """
         Fallback when TensorRT-LLM is unavailable.
-        Uses a simple rule-based response.
+        Uses Ollama as fallback provider.
         """
-        if "summarize" in prompt.lower():
-            return "I apologize, but I cannot summarize the document as the TensorRT-LLM service is currently unavailable. Please check the server connection."
-        elif "extract" in prompt.lower():
-            return "I apologize, but I cannot extract information as the TensorRT-LLM service is currently unavailable. Please check the server connection."
-        else:
-            return "I apologize, but I cannot process your request as the TensorRT-LLM service is currently unavailable. Please check the server connection and try again."
+        try:
+            # Try to use Ollama as fallback
+            from .ollama_provider import OllamaProvider
+            ollama = OllamaProvider(model_name="mistral:7b")
+            return ollama.generate(prompt)
+        except Exception as e:
+            logger.error(f"Ollama fallback failed: {e}")
+            # Final fallback to simple response
+            if "summarize" in prompt.lower():
+                return "I apologize, but I cannot summarize the document as both TensorRT-LLM and Ollama services are currently unavailable. Please check the server connection."
+            elif "extract" in prompt.lower():
+                return "I apologize, but I cannot extract information as both TensorRT-LLM and Ollama services are currently unavailable. Please check the server connection."
+            else:
+                return "I apologize, but I cannot process your request as both TensorRT-LLM and Ollama services are currently unavailable. Please check the server connection and try again."
     
     def batch_generate(self, prompts: List[str], **kwargs) -> List[str]:
         """
