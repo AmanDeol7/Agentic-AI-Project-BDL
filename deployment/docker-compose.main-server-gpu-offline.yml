@@ -1,0 +1,67 @@
+services:
+  # Main server with Mistral 7B model - GPU enabled (Offline)
+  ollama-server:
+    image: ollama/ollama:latest
+    container_name: agentic-ollama-main-offline
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./scripts:/scripts
+      - ../models:/models  # Mount local models directory
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_MODELS=/root/.ollama/models
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    networks:
+      - agentic-network
+    # Modern GPU configuration using deploy.resources.reservations
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main backend API server (Offline)
+  backend-api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.backend-offline
+    container_name: agentic-backend-main-offline
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data
+      - ../data/uploads:/app/data/uploads
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-server:11434
+      - LLM_MODEL=mistral:7b
+      - ENVIRONMENT=production
+      - SERVER_TYPE=main
+    depends_on:
+      - ollama-server
+    networks:
+      - agentic-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  agentic-network:
+    driver: bridge
